@@ -10,7 +10,7 @@ from dateutil.tz import tzlocal,tzutc
 import copy
 import sys
 import math
-
+import shutil
 
 import zipfile
 import unicodecsv
@@ -70,7 +70,7 @@ class railDigitrafficClient(threading.Thread):
             r = requests.get('http://rata.digitraffic.fi/api/v1/live-trains',params=params)
             traindata = r.json()
             r.close()
-            print 'data',time.time()-st
+            #print 'data',time.time()-st
             st = time.time()
             del r
             tn = tn2 = 0
@@ -110,8 +110,8 @@ class railDigitrafficClient(threading.Thread):
             del traindata
 
 
-            print 'saving',time.time()-st
-            print time.ctime(),tn2,tn,len(self.trains)
+            #print 'saving',time.time()-st
+            #print time.ctime(),tn2,tn,len(self.trains)
 
             tns = self.trains.keys()
             now = datetime.datetime.utcnow().replace(tzinfo=self.utc)
@@ -332,6 +332,7 @@ class railGTFSRTProvider:
         today = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0,tzinfo=tzlocal())
         station_times = {}
 
+        #ix 1
         for tr in train['timeTableRows']:
             if not tr['trainStopping']:
                 continue
@@ -385,7 +386,7 @@ class railGTFSRTProvider:
                         ix+=1
 
                     if skipped:
-                        print routeid,tripid,train['trainNumber'],train['commuterLineID'] if 'commuterLineID' in train else '','invalid match'
+                        #print routeid,tripid,train['trainNumber'],train['commuterLineID'] if 'commuterLineID' in train else '','invalid match'
                         continue
 
                     ent = msg.entity.add()
@@ -443,6 +444,24 @@ class railGTFSRTProvider:
         return msg
 
 if __name__ == '__main__':
+
+
+    r = requests.get('http://digitransit.fi/route-server/VR.zip', stream=True)
+    assert r.status_code == 200
+    with open('vr.zip', 'wb') as out_file:
+        r.raw.decode_content = True
+        shutil.copyfileobj(r.raw, out_file)
+    del r
+    print 'vr.zip downloaded'
+
+
+    r = requests.get('http://digitransit.fi/route-server/hsl.zip', stream=True)
+    assert r.status_code == 200
+    with open('hsl.zip', 'wb') as out_file:
+        r.raw.decode_content = True
+        shutil.copyfileobj(r.raw, out_file)
+    del r
+    print 'hsl.zip downloaded'
 
     trainupdater = None
     trainupdater = railDigitrafficClient(category_filters=set(('Commuter','Long-distance')),keep_timetable_rows=True)
