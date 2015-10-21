@@ -67,9 +67,14 @@ class railDigitrafficClient(threading.Thread):
             if self.latest_version != None:
                 params = {'version':self.latest_version}
             st = time.time()
-            r = requests.get('http://rata.digitraffic.fi/api/v1/live-trains',params=params)
-            traindata = r.json()
-            r.close()
+            try:
+                r = requests.get('http://rata.digitraffic.fi/api/v1/live-trains',params=params)
+                traindata = r.json()
+                r.close()
+            except:
+                print 'live-trains request failed'
+                time.sleep(20)
+                continue
             #print 'data',time.time()-st
             st = time.time()
             del r
@@ -119,11 +124,11 @@ class railDigitrafficClient(threading.Thread):
             future_limit = now+datetime.timedelta(hours=4)
             for tn in tns:
                 if getCompTime(self.trains[tn]['first']) > future_limit:
-                    print 'future',tn
+                    #print 'future',tn
                     del self.trains[tn]
                     continue
                 if getCompTime(self.trains[tn]['last']) < past_limit:
-                    print 'past',tn
+                    #print 'past',tn
                     del self.trains[tn]
                     continue
             '''
@@ -446,7 +451,7 @@ class railGTFSRTProvider:
 if __name__ == '__main__':
 
 
-    r = requests.get('http://digitransit.fi/route-server/VR.zip', stream=True)
+    r = requests.get('http://digitransit.fi/route-server/matka.zip', stream=True)
     assert r.status_code == 200
     with open('vr.zip', 'wb') as out_file:
         r.raw.decode_content = True
