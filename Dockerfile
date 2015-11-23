@@ -1,9 +1,5 @@
 FROM python:2
 
-RUN \
-  apt-get update && apt-get install -y \
-    git
-
 ENV root /raildigitraffic2gtfsrt
 RUN mkdir -p $root
 WORKDIR $root
