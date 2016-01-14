@@ -345,7 +345,7 @@ class railGTFSRTProvider:
             if not tr['commercialStop']:
                 continue
 
-            station_times[(tr['stationShortCode'],tr['type'],tr['scheduledTime'].time())] = tr
+            station_times[(tr['stationShortCode'],tr['type'],tr['scheduledTime'].time().replace(second=0))] = tr
 
 
 
