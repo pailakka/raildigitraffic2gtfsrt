@@ -88,15 +88,15 @@ class railDigitrafficClient(threading.Thread):
                     continue
 
                 # Juna saapunut maaranpaahan
-                if 'actualTime' in t['timeTableRows'][-1]:
-                    continue
+#                if 'actualTime' in t['timeTableRows'][-1]:
+#                    continue
 
                 # Juna ei ole viel lahtenut -> ei ennusteita
                 if not t['runningCurrently'] and not t['cancelled']:
                     continue
 
-                if not 'actualTime' in t['timeTableRows'][0]:
-                    continue
+#                if not 'actualTime' in t['timeTableRows'][0]:
+#                    continue
 
                 t['timeTableRows'] = map(self.convertTimetable,t['timeTableRows'])
 
@@ -345,7 +345,7 @@ class railGTFSRTProvider:
             if not tr['commercialStop']:
                 continue
 
-            station_times[(tr['stationShortCode'],tr['type'],tr['scheduledTime'].time())] = tr
+            station_times[(tr['stationShortCode'],tr['type'],tr['scheduledTime'].time().replace(second=0))] = tr
 
 
 
@@ -401,7 +401,7 @@ class railGTFSRTProvider:
                         tripid += '-' + str(train['trainNumber']) + ('-%s' % train['commuterLineID'] if 'commuterLineID' in train else '')
                     ent.trip_update.trip.trip_id = tripid
                     ent.trip_update.trip.route_id = routeid
-                    ent.trip_update.trip.schedule_relationship = ent.trip_update.trip.SCHEDULED
+                    ent.trip_update.trip.schedule_relationship = ent.trip_update.trip.CANCELED if train['cancelled'] else ent.trip_update.trip.SCHEDULED
                     ent.trip_update.timestamp = int(time.time())
 
 
