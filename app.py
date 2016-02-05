@@ -401,9 +401,9 @@ class railGTFSRTProvider:
                         tripid += '-' + str(train['trainNumber']) + ('-%s' % train['commuterLineID'] if 'commuterLineID' in train else '')
                     ent.trip_update.trip.trip_id = tripid
                     ent.trip_update.trip.route_id = routeid
+                    ent.trip_update.trip.start_date = today.strftime("%Y%m%d") # XXX start not always today
                     ent.trip_update.trip.schedule_relationship = ent.trip_update.trip.CANCELED if train['cancelled'] else ent.trip_update.trip.SCHEDULED
                     ent.trip_update.timestamp = int(time.time())
-
 
                     for ix,stopid,dt_arr,dt_dep in stus:
                             stu = ent.trip_update.stop_time_update.add()
