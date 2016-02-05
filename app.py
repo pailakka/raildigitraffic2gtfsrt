@@ -419,6 +419,9 @@ class railGTFSRTProvider:
                                 stu.departure.delay = dt_dep['differenceInMinutes']*60 if 'differenceInMinutes' in dt_dep else 0
                                 stu.departure.time = int(time.mktime(getCompTime(dt_dep).timetuple()))
 
+                            if (not dt_arr or dt_arr['cancelled']) and (not dt_dep or dt_dep['cancelled']):
+                                stu.schedule_relationship = stu.SKIPPED
+
                         #print ix,arr,dep,lkp,dt_arr['differenceInMinutes'],dt_dep['differenceInMinutes']
 
 
