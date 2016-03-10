@@ -8,9 +8,9 @@ COPY requirements.txt /raildigitraffic2gtfsrt/requirements.txt
 RUN pip install -r requirements.txt
 
 ADD . $root
-RUN pip install requests
 
 ENV PORT=8080
+ENV ROUTER_ZIP_URL=http://beta.digitransit.fi/routing-data/v1/router-finland.zip
 
 CMD python app.py
 

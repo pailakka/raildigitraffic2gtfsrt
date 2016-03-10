@@ -11,6 +11,7 @@ import copy
 import sys
 import math
 import shutil
+import logging
 
 import zipfile
 import unicodecsv
@@ -27,6 +28,25 @@ def getCompTime(eventrow):
         return eventrow['liveEstimateTime']
     if 'scheduledTime' in eventrow:
         return eventrow['scheduledTime']
+
+def downloadGTFS(url, zip_in_zips):
+    while 1:
+        r = requests.get(url, stream=True)
+
+        if r.status_code == 200:
+            with open('tmp.zip', 'wb') as out_file:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, out_file)
+            del r
+            zf = zipfile.ZipFile('tmp.zip')
+            for name in zip_in_zips:
+                print 'Extracting ' + name
+                zf.extract(name);
+            del zf
+            break
+        else:
+            logging.warning('Could not load router-zip from ' + url + ' http-status:' + str(r.status_code))
+            time.sleep(5);
 
 class railDigitrafficClient(threading.Thread):
     def __init__(self,category_filters=None,type_filters=None,keep_timetable_rows=False):
@@ -451,37 +471,21 @@ class railGTFSRTProvider:
             #break
         return msg
 
+
+
 if __name__ == '__main__':
+    VR_ZIP = 'router-finland/matka.zip'
+    HSL_ZIP = 'router-finland/hsl.zip'
+    router_zip_url = os.getenv('ROUTER_ZIP_URL', 'http://beta.digitransit.fi/routing-data/v1/router-finland.zip')
 
-
-    r = requests.get('http://digitransit.fi/route-server/matka.zip', stream=True)
-    assert r.status_code == 200
-    with open('vr.zip', 'wb') as out_file:
-        r.raw.decode_content = True
-        shutil.copyfileobj(r.raw, out_file)
-    del r
-    print 'vr.zip downloaded'
-
-
-    r = requests.get('http://digitransit.fi/route-server/hsl.zip', stream=True)
-    assert r.status_code == 200
-    with open('hsl.zip', 'wb') as out_file:
-        r.raw.decode_content = True
-        shutil.copyfileobj(r.raw, out_file)
-    del r
-    print 'hsl.zip downloaded'
+    downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
 
     trainupdater = None
     trainupdater = railDigitrafficClient(category_filters=set(('Commuter','Long-distance')),keep_timetable_rows=True)
     trainupdater.start()
 
-
-    hslgtfsprov = railGTFSRTProvider(trainupdater,'hsl.zip')
-    ngtfsprov = railGTFSRTProvider(trainupdater,'vr.zip')
-
-
-
-
+    hslgtfsprov = railGTFSRTProvider(trainupdater, HSL_ZIP)
+    ngtfsprov = railGTFSRTProvider(trainupdater, VR_ZIP)
 
     app = Flask(__name__)
     app.debug = DEBUG
