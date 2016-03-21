@@ -13,4 +13,8 @@ ENV PORT=8080
 ENV ROUTER_ZIP_URL=http://beta.digitransit.fi/routing-data/v1/router-finland.zip
 
 CMD python app.py
+RUN chmod -R 777 $root
+USER 9999
+
+EXPOSE 8080
 
