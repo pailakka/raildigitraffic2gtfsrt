@@ -80,12 +80,76 @@ class railDigitrafficClient(threading.Thread):
             time.sleep(2)
         return copy.copy(self.trains)
 
+    def handleTimetableRows(self,t):
+
+        t['timeTableRows'] = map(self.convertTimetable,t['timeTableRows'])
+
+        t['first'] = t['timeTableRows'][0]
+        t['last'] = t['timeTableRows'][-1]
+
+        if not self.keep_timetable_rows:
+            del t['timeTableRows']
+
+        return t
+
+    def getTrainSchedules(self,date=None):
+        if not date:
+            date = datetime.date.today()
+
+        url = 'http://rata.digitraffic.fi/api/v1/schedules?departure_date=%s' % date.strftime('%Y-%m-%d')
+
+        r = requests.get(url)
+        scheduledata = r.json()
+        r.close()
+
+
+        return scheduledata
+
+    def getCancelledSchedules(self,date=None):
+        scheduledata = self.getTrainSchedules(date)
+
+        cancelled_schedules = []
+        for train in scheduledata:
+            if self.category_filters and not train['trainCategory'] in self.category_filters:
+                continue
+
+            if train['runningCurrently']:
+                continue
+
+            if not train['cancelled']:
+                continue
+                
+            train = self.handleTimetableRows(train)
+
+            cancelled_schedules.append(train)
+
+        return cancelled_schedules
+
+
     def run(self):
+        last_schedule_update = None
+
         while self.running:
             self.data_loaded = False
             params = None
             if self.latest_version != None:
                 params = {'version':self.latest_version}
+
+            now = datetime.datetime.now()
+            cancelled = []
+
+            if not last_schedule_update or now-last_schedule_update > datetime.timedelta(minutes=10):
+                try:
+                    cancelled = self.getCancelledSchedules()
+                    last_schedule_update = now
+                    print 'schedules updated',now
+                except:
+                    print 'schedule update failed'
+
+
+            for t in cancelled:
+                self.trains[t['trainNumber']] = t
+
             st = time.time()
             try:
                 r = requests.get('http://rata.digitraffic.fi/api/v1/live-trains',params=params)
@@ -93,7 +157,7 @@ class railDigitrafficClient(threading.Thread):
                 r.close()
             except:
                 print 'live-trains request failed'
-                time.sleep(20)
+                time.sleep(5)
                 continue
             #print 'data',time.time()-st
             st = time.time()
@@ -118,13 +182,7 @@ class railDigitrafficClient(threading.Thread):
 #                if not 'actualTime' in t['timeTableRows'][0]:
 #                    continue
 
-                t['timeTableRows'] = map(self.convertTimetable,t['timeTableRows'])
-
-                t['first'] = t['timeTableRows'][0]
-                t['last'] = t['timeTableRows'][-1]
-
-                if not self.keep_timetable_rows:
-                    del t['timeTableRows']
+                t = self.handleTimetableRows(t)
 
                 if not self.latest_version or t['version'] > self.latest_version:
                     self.latest_version = t['version']
@@ -478,13 +536,16 @@ if __name__ == '__main__':
     HSL_ZIP = 'router-finland/hsl.zip'
     router_zip_url = os.getenv('ROUTER_ZIP_URL', 'http://beta.digitransit.fi/routing-data/v1/router-finland.zip')
 
-    downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
+    #downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
 
     trainupdater = None
     trainupdater = railDigitrafficClient(category_filters=set(('Commuter','Long-distance')),keep_timetable_rows=True)
+
+    #trainupdater.getCancelledSchedules()
+    #sys.exit(1)
     trainupdater.start()
 
-    hslgtfsprov = railGTFSRTProvider(trainupdater, HSL_ZIP)
+    #hslgtfsprov = railGTFSRTProvider(trainupdater, HSL_ZIP)
     ngtfsprov = railGTFSRTProvider(trainupdater, VR_ZIP)
 
     app = Flask(__name__)
