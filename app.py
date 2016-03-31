@@ -118,7 +118,7 @@ class railDigitrafficClient(threading.Thread):
 
             if not train['cancelled']:
                 continue
-                
+
             train = self.handleTimetableRows(train)
 
             cancelled_schedules.append(train)
@@ -536,16 +536,14 @@ if __name__ == '__main__':
     HSL_ZIP = 'router-finland/hsl.zip'
     router_zip_url = os.getenv('ROUTER_ZIP_URL', 'http://beta.digitransit.fi/routing-data/v1/router-finland.zip')
 
-    #downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
+    downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
 
     trainupdater = None
     trainupdater = railDigitrafficClient(category_filters=set(('Commuter','Long-distance')),keep_timetable_rows=True)
 
-    #trainupdater.getCancelledSchedules()
-    #sys.exit(1)
     trainupdater.start()
 
-    #hslgtfsprov = railGTFSRTProvider(trainupdater, HSL_ZIP)
+    hslgtfsprov = railGTFSRTProvider(trainupdater, HSL_ZIP)
     ngtfsprov = railGTFSRTProvider(trainupdater, VR_ZIP)
 
     app = Flask(__name__)
