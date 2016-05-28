@@ -16,8 +16,6 @@ import logging
 import zipfile
 import unicodecsv
 
-OTP_BASE = 'http://digitransit.fi/otp'
-OTP_ROUTER = 'finland'
 
 DEBUG = False
 
@@ -138,7 +136,7 @@ class railDigitrafficClient(threading.Thread):
             now = datetime.datetime.now()
             cancelled = []
 
-            if not last_schedule_update or now-last_schedule_update > datetime.timedelta(minutes=10):
+            if not last_schedule_update or now-last_schedule_update > datetime.timedelta(minutes=5):
                 try:
                     cancelled = self.getCancelledSchedules()
                     last_schedule_update = now
@@ -286,10 +284,12 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
     wanted_stopids = set([])
     wanted_routeids = set([])
     wanted_tripids = set([])
+    wanted_services = set([])
 
     routes = {}
     trips = {}
     stops = {}
+    services = {}
 
     zf = zipfile.ZipFile(gtfs_package)
 
@@ -320,6 +320,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
                 continue
 
             wanted_tripids.add(l['trip_id'])
+            wanted_services.add(l['service_id'])
             trips[l['trip_id']] = l
             trips[l['trip_id']]['stoptimes'] = []
             routes[l['route_id']]['trips'].append(l['trip_id'])
@@ -357,9 +358,56 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
     print gtfs_package,len(stops),'stops loaded'
 
+
+    with zf.open('calendar.txt','r') as f:
+        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
+        headers = None
+        for l in csvf:
+            if headers == None:
+                headers = l
+                continue
+            l = dict(zip(headers,l))
+
+            if not l['service_id'] in wanted_services:
+                continue
+
+            wdaystr = ''
+            for wdk in ('monday','tuesday','wednesday','thursday','friday','saturday','sunday'):
+                wdaystr += l[wdk]
+                del l[wdk]
+            l['weekdays'] = wdaystr
+
+            services[l['service_id']] = l
+            services[l['service_id']]['dates'] = {}
+
+
+    print gtfs_package,len(services),'calendars loaded'
+
+    service_date_count = 0
+    with zf.open('calendar_dates.txt','r') as f:
+        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
+        headers = None
+        for l in csvf:
+            if headers == None:
+                headers = l
+                continue
+            l = dict(zip(headers,l))
+
+            if not l['service_id'] in wanted_services:
+                continue
+
+            if not l['service_id'] in services:
+                services[l['service_id']] = {'dates':{}}
+
+            services[l['service_id']]['dates'][l['date']] = l['exception_type'] == '1'
+            service_date_count += 1
+    print gtfs_package,service_date_count,'calendar dates loaded'
     zf.close()
+
+
     print gtfs_package,'reading done. Took:',time.time()-st
-    return routes,trips,stops
+
+    return routes,trips,stops,services
 
 def gtfstime2timedelta(gtfstime):
     t = map(int,gtfstime.split(':'))
@@ -372,10 +420,51 @@ class railGTFSRTProvider:
         self.train_dt = train_dt
         self.stop2station = {}
         self.entid = 1
-        self.routes,self.trips,self.stops = loadGTFSRailTripData(gtfs_source)
+        self.routes,self.trips,self.stops,services = loadGTFSRailTripData(gtfs_source)
+
+        self.dateservices = self.servicesToDatedict(services)
 
         self.handleGTFSRouteData()
 
+    def servicesToDatedict(self,services):
+        dates = {}
+
+        for sk in services:
+
+            service = services[sk]
+
+            if all((k in service for k in ('start_date','end_date','weekdays'))):
+                start = datetime.datetime.strptime(service['start_date'],'%Y%m%d')
+                end = datetime.datetime.strptime(service['end_date'],'%Y%m%d')
+                cdate = start
+                while cdate <= end:
+
+                    if service['weekdays'][cdate.weekday()] == '1':
+                        cdate_date = cdate.date()
+                        if not cdate_date in dates:
+                            dates[cdate_date] = set([])
+                        dates[cdate_date].add(sk)
+
+                    cdate += datetime.timedelta(days=1)
+
+            if 'dates' in service and len(service['dates']) > 0:
+                for d in service['dates']:
+
+                    date = datetime.datetime.strptime(d,'%Y%m%d')
+
+                    if service['dates'][d]:
+                        if not date in dates:
+                            dates[date] = set()
+                        dates[date].add(sk)
+                    else:
+                        if not date in dates:
+                            continue
+                        print sk,'removed from',date
+                        dates[date].discard(sk)
+
+
+        
+        return dates
 
     def handleGTFSRouteData(self):
         self.longdistance = {}
@@ -428,6 +517,8 @@ class railGTFSRTProvider:
 
 
         tk = (train['first']['stationShortCode'],train['first']['scheduledTime'].time())
+        date_services = self.dateservices[datetime.datetime.strptime(train['departureDate'],'%Y-%m-%d').date()]
+
         for r in otp_trips:
             routeid = r[0]
             for t in r[1]:
@@ -435,7 +526,10 @@ class railGTFSRTProvider:
                     continue
                 for tripid,stops in r[1][t]:
                     ix = 1
-
+                    serviceid = self.trips[tripid]['service_id']
+                    if not serviceid in date_services:
+                    	#pass
+                        continue
 
                     stus = []
                     skipped = False
@@ -534,9 +628,9 @@ class railGTFSRTProvider:
 if __name__ == '__main__':
     VR_ZIP = 'router-finland/matka.zip'
     HSL_ZIP = 'router-finland/hsl.zip'
-    router_zip_url = os.getenv('ROUTER_ZIP_URL', 'http://beta.digitransit.fi/routing-data/v1/router-finland.zip')
+    router_zip_url = os.getenv('ROUTER_ZIP_URL', 'http://api.digitransit.fi/routing-data/v1/router-finland.zip')
 
-    downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
+    #downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
 
     trainupdater = None
     trainupdater = railDigitrafficClient(category_filters=set(('Commuter','Long-distance')),keep_timetable_rows=True)
