@@ -630,7 +630,7 @@ if __name__ == '__main__':
     HSL_ZIP = 'router-finland/hsl.zip'
     router_zip_url = os.getenv('ROUTER_ZIP_URL', 'http://api.digitransit.fi/routing-data/v1/router-finland.zip')
 
-    #downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
+    downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
 
     trainupdater = None
     trainupdater = railDigitrafficClient(category_filters=set(('Commuter','Long-distance')),keep_timetable_rows=True)
