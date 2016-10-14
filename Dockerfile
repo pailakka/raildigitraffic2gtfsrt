@@ -10,7 +10,7 @@ RUN pip install -r requirements.txt
 ADD . $root
 
 ENV PORT=8080
-ENV ROUTER_ZIP_URL=http://beta.digitransit.fi/routing-data/v1/router-finland.zip
+ENV ROUTER_ZIP_URL=http://api.digitransit.fi/routing-data/v1/router-finland.zip
 
 RUN chmod -R 777 $root
 USER 9999
