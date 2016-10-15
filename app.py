@@ -8,7 +8,6 @@ import datetime
 import threading
 from dateutil.tz import tzlocal,tzutc
 import copy
-import sys
 import math
 import shutil
 import logging
@@ -151,6 +150,19 @@ def translateAlertCause(self,cause):
         else:
             return None
 
+
+def getTrainSchedules(self,date=None):
+    if not date:
+        date = datetime.date.today()
+
+    url = 'http://rata.digitraffic.fi/api/v1/schedules?departure_date=%s' % date.strftime('%Y-%m-%d')
+
+    r = requests.get(url)
+    scheduledata = r.json()
+    r.close()
+
+    return scheduledata
+
 class railDigitrafficClient(threading.Thread):
     def __init__(self,category_filters=None,type_filters=None,keep_timetable_rows=False):
         super(railDigitrafficClient,self).__init__()
@@ -206,19 +218,6 @@ class railDigitrafficClient(threading.Thread):
 
         return t
 
-    def getTrainSchedules(self,date=None):
-        if not date:
-            date = datetime.date.today()
-
-        url = 'http://rata.digitraffic.fi/api/v1/schedules?departure_date=%s' % date.strftime('%Y-%m-%d')
-
-        r = requests.get(url)
-        scheduledata = r.json()
-        r.close()
-
-
-        return scheduledata
-
     def getCancelledSchedules(self,date=None):
         scheduledata = self.getTrainSchedules(date)
 
@@ -263,7 +262,6 @@ class railDigitrafficClient(threading.Thread):
             for t in cancelled:
                 self.trains[t['trainNumber']] = t
 
-            st = time.time()
             try:
                 r = requests.get('http://rata.digitraffic.fi/api/v1/live-trains',params=params)
                 traindata = r.json()
@@ -272,8 +270,7 @@ class railDigitrafficClient(threading.Thread):
                 print 'live-trains request failed'
                 time.sleep(5)
                 continue
-            #print 'data',time.time()-st
-            st = time.time()
+
             del r
             tn = tn2 = 0
             for t in traindata:
@@ -316,22 +313,13 @@ class railDigitrafficClient(threading.Thread):
                 if getCompTime(self.trains[tn]['last']) < past_limit:
                     del self.trains[tn]
                     continue
-            '''
-            self.lines = {}
-            for tn in self.trains:
-                if not 'commuterLineID' in self.trains[tn]:
-                    continue
-                clid = self.trains[tn]['commuterLineID']
-                if clid not in self.lines:
-                    self.lines[clid] = []
-                self.lines[clid].append(self.trains[tn])
-            '''
+
             self.data_loaded = True
             time.sleep(10)
         print 'Done!'
 
 
-class stop2stationResolver:
+class stop2stationResolver(object):
     dt_stations = {}
     name2station = {}
     stop2station = {}
@@ -365,7 +353,6 @@ class stop2stationResolver:
         if gtfsid in self.stop2station:
             return self.stop2station[gtfsid]
 
-        station = None
         name_lwr = stop['stop_name'].lower()
         if name_lwr in self.name2station:
             self.stop2station[gtfsid] = self.name2station[name_lwr]
@@ -545,7 +532,45 @@ def gtfstime2timedelta(gtfstime):
 
     return datetime.timedelta(seconds=t[0]*3600+t[1]*60+t[2])
 
-class railGTFSRTProvider:
+
+def servicesToDatedict(self,services):
+    dates = {}
+
+    for sk in services:
+
+        service = services[sk]
+
+        if all((k in service for k in ('start_date','end_date','weekdays'))):
+            start = datetime.datetime.strptime(service['start_date'],'%Y%m%d')
+            end = datetime.datetime.strptime(service['end_date'],'%Y%m%d')
+            cdate = start
+            while cdate <= end:
+
+                if service['weekdays'][cdate.weekday()] == '1':
+                    cdate_date = cdate.date()
+                    if not cdate_date in dates:
+                        dates[cdate_date] = set([])
+                    dates[cdate_date].add(sk)
+
+                cdate += datetime.timedelta(days=1)
+
+        if 'dates' in service and len(service['dates']) > 0:
+            for d in service['dates']:
+
+                date = datetime.datetime.strptime(d,'%Y%m%d')
+
+                if service['dates'][d]:
+                    if not date in dates:
+                        dates[date] = set()
+                    dates[date].add(sk)
+                else:
+                    if not date in dates:
+                        continue
+                    print sk,'removed from',date
+                    dates[date].discard(sk)
+    return dates
+
+class railGTFSRTProvider(object):
     def __init__(self,train_dt=None,gtfs_source='vr.zip'):
         self.s2sr = stop2stationResolver()
         self.train_dt = train_dt
@@ -559,50 +584,10 @@ class railGTFSRTProvider:
 
         self.handleGTFSRouteData()
 
-    def servicesToDatedict(self,services):
-        dates = {}
-
-        for sk in services:
-
-            service = services[sk]
-
-            if all((k in service for k in ('start_date','end_date','weekdays'))):
-                start = datetime.datetime.strptime(service['start_date'],'%Y%m%d')
-                end = datetime.datetime.strptime(service['end_date'],'%Y%m%d')
-                cdate = start
-                while cdate <= end:
-
-                    if service['weekdays'][cdate.weekday()] == '1':
-                        cdate_date = cdate.date()
-                        if not cdate_date in dates:
-                            dates[cdate_date] = set([])
-                        dates[cdate_date].add(sk)
-
-                    cdate += datetime.timedelta(days=1)
-
-            if 'dates' in service and len(service['dates']) > 0:
-                for d in service['dates']:
-
-                    date = datetime.datetime.strptime(d,'%Y%m%d')
-
-                    if service['dates'][d]:
-                        if not date in dates:
-                            dates[date] = set()
-                        dates[date].add(sk)
-                    else:
-                        if not date in dates:
-                            continue
-                        print sk,'removed from',date
-                        dates[date].discard(sk)
-
-
-
-        return dates
-
     def handleGTFSRouteData(self):
         self.longdistance = {}
         self.commuter = {}
-        otptrains = []
+
         today = datetime.datetime.utcnow().replace(hour=0,minute=0,second=0,microsecond=0)
         for routeid in self.routes:
             route = self.routes[routeid]
