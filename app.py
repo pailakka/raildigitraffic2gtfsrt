@@ -858,7 +858,7 @@ class railGTFSRTProvider(object):
 
 
 
-    def buildGTFSRTMessage(self,alerts=False,fuzzy=False,debug=False):
+    def buildGTFSRTMessage(self,alerts=0,fuzzy=False,debug=False):
         trains = self.train_dt.getTrainDataCopy()
 
         msg = gtfs_realtime_pb2.FeedMessage()
@@ -891,7 +891,7 @@ if __name__ == '__main__':
 
     app = Flask(__name__)
     app.debug = DEBUG
-    @app.route('/national',defaults={'debug':False,'fuzzy':False,'alerts':False})
+    @app.route('/national',defaults={'debug':0,'fuzzy':0,'alerts':0})
     @app.route('/national/<int:alerts>/<int:fuzzy>/<int:debug>')
     def national(alerts,fuzzy,debug):
         fuzzy = fuzzy == 1
@@ -902,7 +902,7 @@ if __name__ == '__main__':
         else:
             return str(ngtfsprov.buildGTFSRTMessage(alerts=alerts,fuzzy=fuzzy,debug=debug))
 
-    @app.route('/hsl',defaults={'debug':False,'fuzzy':False,'alerts':False})
+    @app.route('/hsl',defaults={'debug':0,'fuzzy':0,'alerts':0})
     @app.route('/hsl/<int:alerts>/<int:fuzzy>/<int:debug>')
     def hsl(alerts,fuzzy,debug):
         fuzzy = fuzzy == 1
