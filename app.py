@@ -53,7 +53,7 @@ def downloadGTFS(url, zip_in_zips):
             time.sleep(5)
 
 
-def getCategoryCodes(self,detailed=False):
+def getCategoryCodes(detailed=False):
     url = 'http://rata.digitraffic.fi/api/v1/metadata/cause-category-codes'
     if detailed:
         url = 'http://rata.digitraffic.fi/api/v1/metadata/detailed-cause-category-codes'
@@ -72,7 +72,7 @@ def getCategoryCodes(self,detailed=False):
     return rcodes
 
 
-def translateAlertCause(self,cause):
+def translateAlertCause(cause):
         '''
         UNKNOWN_CAUSE
         OTHER_CAUSE
@@ -151,7 +151,7 @@ def translateAlertCause(self,cause):
             return None
 
 
-def getTrainSchedules(self,date=None):
+def getTrainSchedules(date=None):
     if not date:
         date = datetime.date.today()
 
@@ -173,8 +173,8 @@ class railDigitrafficClient(threading.Thread):
         self.latest_version = None
         self.data_loaded = False
 
-        self.cause_category_codes = self.getCategoryCodes()
-        self.cause_detailed_category_codes = self.getCategoryCodes(detailed=True)
+        self.cause_category_codes = getCategoryCodes()
+        self.cause_detailed_category_codes = getCategoryCodes(detailed=True)
 
         self.utc = tzutc()
         self.local = tzlocal()
@@ -219,7 +219,7 @@ class railDigitrafficClient(threading.Thread):
         return t
 
     def getCancelledSchedules(self,date=None):
-        scheduledata = self.getTrainSchedules(date)
+        scheduledata = getTrainSchedules(date)
 
         cancelled_schedules = []
         for train in scheduledata:
@@ -533,7 +533,7 @@ def gtfstime2timedelta(gtfstime):
     return datetime.timedelta(seconds=t[0]*3600+t[1]*60+t[2])
 
 
-def servicesToDatedict(self,services):
+def servicesToDatedict(services):
     dates = {}
 
     for sk in services:
@@ -580,7 +580,7 @@ class railGTFSRTProvider(object):
         self.routes, self.trips, self.stops, services = loadGTFSRailTripData(gtfs_source)
 
 
-        self.dateservices = self.servicesToDatedict(services)
+        self.dateservices = servicesToDatedict(services)
 
         self.handleGTFSRouteData()
 
@@ -736,14 +736,7 @@ class railGTFSRTProvider(object):
 
                     alert_ent = None
                     trip_cause = None
-
-                    if alerts == AGGREGATED_ALERTS:
-                        alert_ent = msg.entity.add()
-                        alert_ent.id = str(self.entid)
-                        self.entid+=1
-                        ie = alert_ent.alert.informed_entity.add()
-                        alert_trip = ie.trip.CopyFrom(ent.trip_update.trip)
-                        trip_messages = []
+                    trip_messages = []
 
                     for ix,stopid,dt_arr,dt_dep in stus:
                             stu = ent.trip_update.stop_time_update.add()
@@ -764,62 +757,63 @@ class railGTFSRTProvider(object):
 
                             if alerts > NO_ALERTS:
                                 stop_messages = []
-                                if dt_arr and len(dt_arr['causes']) > 0:
+                                if dt_arr and 'causes' in dt_arr and len(dt_arr['causes']) > 0:
                                     for c in dt_arr['causes']:
                                         stop_messages.append(u'%s: %s%s' % (
                                             self.s2sr.dt_stations[dt_arr['stationShortCode']][1],
                                             c[u'categoryText'],
                                             (' / %s' % c[u'detailedCategoryText']) if c[u'detailedCategoryText'] else ''
                                             ))
+                                        trip_cause = translateAlertCause(c)
 
-                                if dt_dep and len(dt_dep['causes']) > 0:
+                                if dt_dep and 'causes' in dt_dep and len(dt_dep['causes']) > 0:
                                     for c in dt_dep['causes']:
                                         stop_messages.append(u'%s: %s%s' % (
                                             self.s2sr.dt_stations[dt_dep['stationShortCode']][1],
                                             c[u'categoryText'],
                                             (' / %s' % c[u'detailedCategoryText']) if c[u'detailedCategoryText'] else ''
                                             ))
+                                        trip_cause = translateAlertCause(c)
 
                                 stop_messages = list(set(stop_messages))
-                                if alerts == FULL_ALERTS and len(stop_messages) > 0:
-                                    alert_ent = msg.entity.add()
-                                    alert_ent.id = str(self.entid)
-                                    self.entid+=1
-                                    ie = alert_ent.alert.informed_entity.add()
-                                    alert_trip = ie.trip.CopyFrom(ent.trip_update.trip)
-                                    ie.stop_id = stopid
-                                    alert_ent.alert.effect = alert_ent.alert.SIGNIFICANT_DELAYS
-                                    if dt_dep and len(dt_dep['causes']) > 0:
-                                        alert_ent.alert.cause = trip_cause = self.translateAlertCause(dt_dep['causes'][-1])
-                                    elif dt_arr and len(dt_arr['causes']) > 0:
-                                        alert_ent.alert.cause = trip_cause = self.translateAlertCause(dt_arr['causes'][-1])
-                                    else:
-                                        raise ValueError('This should\'t newer happen?')
+                                if len(stop_messages) > 0:
+                                    if alerts == FULL_ALERTS:
+                                        alert_ent = msg.entity.add()
+                                        alert_ent.id = str(self.entid)
+                                        self.entid+=1
+                                        ie = alert_ent.alert.informed_entity.add()
+                                        alert_trip = ie.trip.CopyFrom(ent.trip_update.trip)
+                                        ie.stop_id = stopid
+                                        alert_ent.alert.effect = alert_ent.alert.SIGNIFICANT_DELAYS
+                                        if dt_dep and len(dt_dep['causes']) > 0:
+                                            alert_ent.alert.cause = translateAlertCause(dt_dep['causes'][-1])
+                                        elif dt_arr and len(dt_arr['causes']) > 0:
+                                            alert_ent.alert.cause = translateAlertCause(dt_arr['causes'][-1])
+                                        else:
+                                            raise ValueError('This should\'t newer happen?')
 
-                                    if train['commuterLineID'] == '':
-                                        info_urls = (
-                                            ('https://www.vr.fi/cs/vr/fi/liikennetilanne','fi'),
-                                            ('https://www.vr.fi/cs/vr/sv/trafikinfo','sv'),
-                                            ('https://www.vr.fi/cs/vr/en/traffic_info','en'),
-                                        )
-                                    else:
-                                        info_urls = (
-                                            ('https://www.hsl.fi/','fi'),
-                                            ('https://www.hsl.fi/sv','sv'),
-                                            ('https://www.hsl.fi/en','en'),
-                                        )
+                                        if train['commuterLineID'] == '':
+                                            info_urls = (
+                                                ('https://www.vr.fi/cs/vr/fi/liikennetilanne','fi'),
+                                                ('https://www.vr.fi/cs/vr/sv/trafikinfo','sv'),
+                                                ('https://www.vr.fi/cs/vr/en/traffic_info','en'),
+                                            )
+                                        else:
+                                            info_urls = (
+                                                ('https://www.hsl.fi/','fi'),
+                                                ('https://www.hsl.fi/sv','sv'),
+                                                ('https://www.hsl.fi/en','en'),
+                                            )
 
-                                    for url,lang in info_urls:
-                                        aurl = alert_ent.alert.url.translation.add()
-                                        aurl.text = url
-                                        aurl.language = lang
+                                        for url,lang in info_urls:
+                                            aurl = alert_ent.alert.url.translation.add()
+                                            aurl.text = url
+                                            aurl.language = lang
 
-                                    dtext = alert_ent.alert.description_text.translation.add()
-                                    dtext.text = '\n'.join(stop_messages)
-
-                                if alerts == AGGREGATED_ALERTS:
-
-                                    trip_messages.append('\n'.join(stop_messages))
+                                        dtext = alert_ent.alert.description_text.translation.add()
+                                        dtext.text = '\n'.join(stop_messages)
+                                    elif alerts == AGGREGATED_ALERTS:
+                                        trip_messages.append('\n'.join(stop_messages))
 
                         #print ix,arr,dep,lkp,dt_arr['differenceInMinutes'],dt_dep['differenceInMinutes']
 
@@ -828,6 +822,10 @@ class railGTFSRTProvider(object):
                         ent.trip_update.delay = dt_arr['differenceInMinutes']*60 if 'differenceInMinutes' in dt_arr else 0
                     else:
                         ent.trip_update.delay = 0
+
+                    if train['trainNumber'] == 29:
+                        pprint.pprint(trip_messages)
+                        pprint.pprint(trip_cause)
 
                     if alerts == AGGREGATED_ALERTS and len(trip_messages) > 0 and trip_cause != None:
                         alert_ent = msg.entity.add()
