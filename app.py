@@ -53,6 +53,104 @@ def downloadGTFS(url, zip_in_zips):
             logging.warning('Could not load router-zip from ' + url + ' http-status:' + str(r.status_code))
             time.sleep(5)
 
+
+def getCategoryCodes(self,detailed=False):
+    url = 'http://rata.digitraffic.fi/api/v1/metadata/cause-category-codes'
+    if detailed:
+        url = 'http://rata.digitraffic.fi/api/v1/metadata/detailed-cause-category-codes'
+
+    r = requests.get(url)
+
+    codes = r.json()
+
+    rcodes = {}
+    for c in codes:
+        if detailed:
+            rcodes[c['detailedCategoryCode']] = c['detailedCategoryName']
+        else:
+            rcodes[c['categoryCode']] = c['categoryName']
+
+    return rcodes
+
+
+def translateAlertCause(self,cause):
+        '''
+        UNKNOWN_CAUSE
+        OTHER_CAUSE
+        TECHNICAL_PROBLEM
+        STRIKE
+        DEMONSTRATION
+        ACCIDENT
+        HOLIDAY
+        WEATHER
+        MAINTENANCE
+        CONSTRUCTION
+        POLICE_ACTIVITY
+        MEDICAL_EMERGENCY
+        '''
+
+        known_detailed_reasons = {
+            'E1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'E2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'E3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'E4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'E5':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'E6':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'E7':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'H1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'H2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'H3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'I1':gtfs_realtime_pb2.Alert.WEATHER,'I2':gtfs_realtime_pb2.Alert.WEATHER,
+            'I3':gtfs_realtime_pb2.Alert.POLICE_ACTIVITY,'I4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'J1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'J2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'J3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'J4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'J5':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'K1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'K2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'K3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'K4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'K5':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'K6':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'K7':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'L1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'L2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'L3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'L4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'L5':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'L6':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'L7':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'L8':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'M1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'M2':gtfs_realtime_pb2.Alert.POLICE_ACTIVITY,
+            'M3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'M4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'M5':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'M6':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'O1':gtfs_realtime_pb2.Alert.ACCIDENT,'O2':gtfs_realtime_pb2.Alert.ACCIDENT,
+            'O3':gtfs_realtime_pb2.Alert.ACCIDENT,'O4':gtfs_realtime_pb2.Alert.ACCIDENT,
+            'P1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'P2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'P3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'P4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'P5':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'P6':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'P7':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'R1':gtfs_realtime_pb2.Alert.MAINTENANCE,'R2':gtfs_realtime_pb2.Alert.MAINTENANCE,
+            'R3':gtfs_realtime_pb2.Alert.MAINTENANCE,'R4':gtfs_realtime_pb2.Alert.MAINTENANCE,
+            'S1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'S2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'S3':gtfs_realtime_pb2.Alert.CONSTRUCTION,'S4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'T1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'T2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'T3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,'T4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'V1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'V2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'V3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,'V4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+        }
+
+
+        known_reasons = {
+            'E':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'H':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'I':gtfs_realtime_pb2.Alert.WEATHER,
+            'J':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'K':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'L':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'M':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'O':gtfs_realtime_pb2.Alert.ACCIDENT,
+            'P':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'R':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'S':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+            'T':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
+            'V':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
+        }
+        if u'detailedCategoryCode' in cause:
+            return known_detailed_reasons[cause[u'detailedCategoryCode']] if cause[u'detailedCategoryCode'] in known_detailed_reasons else gtfs_realtime_pb2.Alert.UNKNOWN_CAUSE
+        elif u'categoryCode' in cause:
+            return known_reasons[cause[u'categoryCode']] if cause[u'categoryCode'] in known_reasons else gtfs_realtime_pb2.Alert.UNKNOWN_CAUSE
+        else:
+            return None
+
 class railDigitrafficClient(threading.Thread):
     def __init__(self,category_filters=None,type_filters=None,keep_timetable_rows=False):
         super(railDigitrafficClient,self).__init__()
@@ -72,24 +170,6 @@ class railDigitrafficClient(threading.Thread):
         self.category_filters = category_filters
         self.type_filters = type_filters
         self.keep_timetable_rows = keep_timetable_rows
-    
-    def getCategoryCodes(self,detailed=False):
-        url = 'http://rata.digitraffic.fi/api/v1/metadata/cause-category-codes'
-        if detailed:
-            url = 'http://rata.digitraffic.fi/api/v1/metadata/detailed-cause-category-codes'
-        
-        r = requests.get(url)
-
-        codes = r.json()
-
-        rcodes = {}
-        for c in codes:
-            if detailed:
-                rcodes[c['detailedCategoryCode']] = c['detailedCategoryName']
-            else:
-                rcodes[c['categoryCode']] = c['categoryName']
-        
-        return rcodes
 
     def convertTimetable(self,eventrow):
         if 'scheduledTime' in eventrow:
@@ -321,7 +401,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         if os.path.exists(tmp_filename):
             with open(tmp_filename,'rb') as f:
                 ret = cPickle.load(f)
-            
+
             print 'GTFS DATA LOADED FROM DISK'
             return ret
 
@@ -456,7 +536,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         with open(tmp_filename,'wb') as f:
             cPickle.dump((routes,trips,stops,services),f,-1)
             print 'GTFS DATA WRITTEN TO DISK'
-    
+
 
     return routes,trips,stops,services
 
@@ -473,7 +553,7 @@ class railGTFSRTProvider:
         self.entid = 1
 
         self.routes, self.trips, self.stops, services = loadGTFSRailTripData(gtfs_source)
-      
+
 
         self.dateservices = self.servicesToDatedict(services)
 
@@ -516,7 +596,7 @@ class railGTFSRTProvider:
                         dates[date].discard(sk)
 
 
-        
+
         return dates
 
     def handleGTFSRouteData(self):
@@ -550,14 +630,14 @@ class railGTFSRTProvider:
                 if route['route_short_name'] not in self.commuter:
                     self.commuter[route['route_short_name']] = []
                 self.commuter[route['route_short_name']].append((route['route_id'],trips))
-    
+
     def getGTFSTripsForTrain(self,train):
         if train['trainNumber'] in self.longdistance:
             return self.longdistance[train['trainNumber']]
         else:
             if 'commuterLineID' in train and train['commuterLineID'] in self.commuter:
                 return self.commuter[train['commuterLineID']]
-        
+
         if False and DEBUG:
             print 'GTFS routes/trips not found for train',train['trainNumber'],'(',train['commuterLineID'],')'
         return None
@@ -569,7 +649,7 @@ class railGTFSRTProvider:
         if not gtfs_trips:
             return False
 
-            
+
         today = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0,tzinfo=tzlocal())
         station_times = {}
 
@@ -621,7 +701,7 @@ class railGTFSRTProvider:
                             dt_arr = station_times[(lkp,'ARRIVAL',arr)]
                         elif (lkp,'DEPARTURE',arr) in station_times:
                             dt_arr = station_times[(lkp,'DEPARTURE',arr)]
-                        
+
                         dbg.append(str(((lkp,'DEPARTURE',dep),(lkp,'DEPARTURE',dep) in station_times)))
 
                         if (lkp,'DEPARTURE',dep) in station_times:
@@ -665,13 +745,12 @@ class railGTFSRTProvider:
                     ent.trip_update.trip.route_id = routeid
                     ent.trip_update.trip.start_time = train['first']['scheduledTime'].replace(second=0).strftime('%H:%M:%S')
                     ent.trip_update.trip.start_date = train['departureDate'].replace('-','')
-                    ent.trip_update.trip.direction_id = self.trips[tripid]['direction_id'] if 'direction_id' in self.trips[tripid] else 0 
+                    ent.trip_update.trip.direction_id = self.trips[tripid]['direction_id'] if 'direction_id' in self.trips[tripid] else 0
                     ent.trip_update.trip.schedule_relationship = ent.trip_update.trip.CANCELED if train['cancelled'] else ent.trip_update.trip.SCHEDULED
                     ent.trip_update.timestamp = int(time.time())
 
                     alert_ent = None
                     trip_cause = None
-                    agg_alert_text = ''
 
                     if alerts == AGGREGATED_ALERTS:
                         alert_ent = msg.entity.add()
@@ -707,7 +786,7 @@ class railGTFSRTProvider:
                                             c[u'categoryText'],
                                             (' / %s' % c[u'detailedCategoryText']) if c[u'detailedCategoryText'] else ''
                                             ))
-                                
+
                                 if dt_dep and len(dt_dep['causes']) > 0:
                                     for c in dt_dep['causes']:
                                         stop_messages.append(u'%s: %s%s' % (
@@ -715,7 +794,7 @@ class railGTFSRTProvider:
                                             c[u'categoryText'],
                                             (' / %s' % c[u'detailedCategoryText']) if c[u'detailedCategoryText'] else ''
                                             ))
-                                
+
                                 stop_messages = list(set(stop_messages))
                                 if alerts == FULL_ALERTS and len(stop_messages) > 0:
                                     alert_ent = msg.entity.add()
@@ -731,7 +810,7 @@ class railGTFSRTProvider:
                                         alert_ent.alert.cause = trip_cause = self.translateAlertCause(dt_arr['causes'][-1])
                                     else:
                                         raise ValueError('This should\'t newer happen?')
-                                    
+
                                     if train['commuterLineID'] == '':
                                         info_urls = (
                                             ('https://www.vr.fi/cs/vr/fi/liikennetilanne','fi'),
@@ -743,17 +822,18 @@ class railGTFSRTProvider:
                                             ('https://www.hsl.fi/','fi'),
                                             ('https://www.hsl.fi/sv','sv'),
                                             ('https://www.hsl.fi/en','en'),
-                                        )                                        
+                                        )
+
                                     for url,lang in info_urls:
                                         aurl = alert_ent.alert.url.translation.add()
                                         aurl.text = url
                                         aurl.language = lang
-                                    
+
                                     dtext = alert_ent.alert.description_text.translation.add()
                                     dtext.text = '\n'.join(stop_messages)
 
                                 if alerts == AGGREGATED_ALERTS:
-                                    
+
                                     trip_messages.append('\n'.join(stop_messages))
 
                         #print ix,arr,dep,lkp,dt_arr['differenceInMinutes'],dt_dep['differenceInMinutes']
@@ -763,7 +843,7 @@ class railGTFSRTProvider:
                         ent.trip_update.delay = dt_arr['differenceInMinutes']*60 if 'differenceInMinutes' in dt_arr else 0
                     else:
                         ent.trip_update.delay = 0
-                    
+
                     if alerts == AGGREGATED_ALERTS and len(trip_messages) > 0 and trip_cause != None:
                         alert_ent = msg.entity.add()
                         alert_ent.id = str(self.entid)
@@ -784,124 +864,17 @@ class railGTFSRTProvider:
                                 ('https://www.hsl.fi/','fi'),
                                 ('https://www.hsl.fi/sv','sv'),
                                 ('https://www.hsl.fi/en','en'),
-                            )                                        
+                            )
                         for url,lang in info_urls:
                             aurl = alert_ent.alert.url.translation.add()
                             aurl.text = url
                             aurl.language = lang
-                        
+
                         dtext = alert_ent.alert.description_text.translation.add()
                         dtext.text = '\n\n'.join(trip_messages)
 
-                    
-    def translateAlertCause(self,cause):
-        '''
-        UNKNOWN_CAUSE
-        OTHER_CAUSE
-        TECHNICAL_PROBLEM
-        STRIKE
-        DEMONSTRATION
-        ACCIDENT
-        HOLIDAY
-        WEATHER
-        MAINTENANCE
-        CONSTRUCTION
-        POLICE_ACTIVITY
-        MEDICAL_EMERGENCY
-        '''
-
-        known_detailed_reasons = {
-            'E1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'E2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'E3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'E4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'E5':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'E6':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'E7':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'H1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'H2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'H3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'I1':gtfs_realtime_pb2.Alert.WEATHER,
-            'I2':gtfs_realtime_pb2.Alert.WEATHER,
-            'I3':gtfs_realtime_pb2.Alert.POLICE_ACTIVITY,
-            'I4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'J1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'J2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'J3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'J4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'J5':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K5':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K6':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K7':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'L1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'L2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'L3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'L4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'L5':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'L6':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'L7':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'L8':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'M1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'M2':gtfs_realtime_pb2.Alert.POLICE_ACTIVITY,
-            'M3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'M4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'M5':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'M6':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'O1':gtfs_realtime_pb2.Alert.ACCIDENT,
-            'O2':gtfs_realtime_pb2.Alert.ACCIDENT,
-            'O3':gtfs_realtime_pb2.Alert.ACCIDENT,
-            'O4':gtfs_realtime_pb2.Alert.ACCIDENT,
-            'P1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'P2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'P3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'P4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'P5':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'P6':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'P7':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'R1':gtfs_realtime_pb2.Alert.MAINTENANCE,
-            'R2':gtfs_realtime_pb2.Alert.MAINTENANCE,
-            'R3':gtfs_realtime_pb2.Alert.MAINTENANCE,
-            'R4':gtfs_realtime_pb2.Alert.MAINTENANCE,
-            'S1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'S2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'S3':gtfs_realtime_pb2.Alert.CONSTRUCTION,
-            'S4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'T1':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'T2':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'T3':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'T4':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'V1':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'V2':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'V3':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'V4':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-        }
 
 
-        known_reasons = {
-            'E':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'H':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'I':gtfs_realtime_pb2.Alert.WEATHER,
-            'J':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'K':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'L':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'M':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'O':gtfs_realtime_pb2.Alert.ACCIDENT,
-            'P':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'R':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'S':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-            'T':gtfs_realtime_pb2.Alert.OTHER_CAUSE,
-            'V':gtfs_realtime_pb2.Alert.TECHNICAL_PROBLEM,
-        }
-        if u'detailedCategoryCode' in cause:
-            return known_detailed_reasons[cause[u'detailedCategoryCode']] if cause[u'detailedCategoryCode'] in known_detailed_reasons else gtfs_realtime_pb2.Alert.UNKNOWN_CAUSE
-        elif u'categoryCode' in cause:
-            return known_reasons[cause[u'categoryCode']] if cause[u'categoryCode'] in known_reasons else gtfs_realtime_pb2.Alert.UNKNOWN_CAUSE
-        else:
-            return 
     def buildGTFSRTMessage(self,alerts=False,fuzzy=False,debug=False):
         trains = self.train_dt.getTrainDataCopy()
 
