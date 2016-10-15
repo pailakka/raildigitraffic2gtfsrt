@@ -225,21 +225,15 @@ class railDigitrafficClient(threading.Thread):
 
             del traindata
 
-
-            #print 'saving',time.time()-st
-            #print time.ctime(),tn2,tn,len(self.trains)
-
             tns = self.trains.keys()
             now = datetime.datetime.utcnow().replace(tzinfo=self.utc)
             past_limit = now-datetime.timedelta(hours=4)
             future_limit = now+datetime.timedelta(hours=4)
             for tn in tns:
                 if getCompTime(self.trains[tn]['first']) > future_limit:
-                    #print 'future',tn
                     del self.trains[tn]
                     continue
                 if getCompTime(self.trains[tn]['last']) < past_limit:
-                    #print 'past',tn
                     del self.trains[tn]
                     continue
             '''
@@ -696,7 +690,6 @@ class railGTFSRTProvider:
                             if dt_arr:
                                 stu.arrival.delay = dt_arr['differenceInMinutes']*60 if 'differenceInMinutes' in dt_arr else 0
                                 stu.arrival.time = int(time.mktime(getCompTime(dt_arr).timetuple()))
-                                print dt_arr
 
                             if dt_dep:
                                 stu.departure.delay = dt_dep['differenceInMinutes']*60 if 'differenceInMinutes' in dt_dep else 0
