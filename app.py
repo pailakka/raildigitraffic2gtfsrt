@@ -823,10 +823,6 @@ class railGTFSRTProvider(object):
                     else:
                         ent.trip_update.delay = 0
 
-                    if train['trainNumber'] == 29:
-                        pprint.pprint(trip_messages)
-                        pprint.pprint(trip_cause)
-
                     if alerts == AGGREGATED_ALERTS and len(trip_messages) > 0 and trip_cause != None:
                         alert_ent = msg.entity.add()
                         alert_ent.id = str(self.entid)
