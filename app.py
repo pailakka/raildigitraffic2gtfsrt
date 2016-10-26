@@ -730,7 +730,7 @@ class railGTFSRTProvider(object):
                     ent.trip_update.trip.route_id = routeid
                     ent.trip_update.trip.start_time = train['first']['scheduledTime'].replace(second=0).strftime('%H:%M:%S')
                     ent.trip_update.trip.start_date = train['departureDate'].replace('-','')
-                    ent.trip_update.trip.direction_id = self.trips[tripid]['direction_id'] if 'direction_id' in self.trips[tripid] else 0
+                    ent.trip_update.trip.direction_id = int(self.trips[tripid]['direction_id']) if 'direction_id' in self.trips[tripid] else 0
                     ent.trip_update.trip.schedule_relationship = ent.trip_update.trip.CANCELED if train['cancelled'] else ent.trip_update.trip.SCHEDULED
                     ent.trip_update.timestamp = int(time.time())
 
