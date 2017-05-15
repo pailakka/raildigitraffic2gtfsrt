@@ -14,6 +14,8 @@ import logging
 
 import zipfile
 import unicodecsv
+from chardet.universaldetector import UniversalDetector
+
 
 DEBUG = False
 
@@ -405,8 +407,24 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
     zf = zipfile.ZipFile(gtfs_package)
 
+    filesizes = {}
+    for il in zf.infolist():
+        filesizes[il.filename] = float(il.file_size)
+
     with zf.open('routes.txt','r') as f:
-        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
+        if DEBUG:
+            print 'Detecting routes.txt encoding'
+        detector = UniversalDetector()
+        for line in f:
+            detector.feed(line)
+            if detector.done: break
+        detector.close()
+
+        if DEBUG:
+            print 'routes.txt',detector.result
+
+    with zf.open('routes.txt','r') as f:
+        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
         headers = None
         for l in csvf:
             if headers == None:
@@ -421,7 +439,19 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
     print gtfs_package,len(routes),'routes loaded'
 
     with zf.open('trips.txt','r') as f:
-        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
+        if DEBUG:
+            print 'Detecting trips.txt encoding'
+        detector = UniversalDetector()
+        for line in f:
+            detector.feed(line)
+            if detector.done: break
+        detector.close()
+
+        if DEBUG:
+            print 'trips.txt',detector.result
+
+    with zf.open('trips.txt','r') as f:
+        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
         headers = None
         for l in csvf:
             if headers == None:
@@ -439,9 +469,23 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
     print gtfs_package,len(trips),'trips loaded'
 
+
+    with zf.open('stop_times.txt','r') as f:
+        if DEBUG:
+            print 'Detecting stop_times.txt encoding'
+        detector = UniversalDetector()
+
+        for line in f:
+            detector.feed(line)
+            if detector.done: break
+        detector.close()
+
+        if DEBUG:
+            print 'stop_times.txt',detector.result
+
     z = 0
     with zf.open('stop_times.txt','r') as f:
-        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
+        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
         headers = None
         for l in csvf:
             if headers == None:
@@ -456,7 +500,19 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
     print gtfs_package,z,'stoptimes loaded'
 
     with zf.open('stops.txt','r') as f:
-        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
+        if DEBUG:
+            print 'Detecting stops.txt encoding'
+        detector = UniversalDetector()
+        for line in f:
+            detector.feed(line)
+            if detector.done: break
+        detector.close()
+
+        if DEBUG:
+            print 'stops.txt',detector.result
+
+    with zf.open('stops.txt','r') as f:
+        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
         headers = None
         for l in csvf:
             if headers == None:
@@ -472,7 +528,19 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
 
     with zf.open('calendar.txt','r') as f:
-        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
+        if DEBUG:
+            print 'Detecting calendar.txt encoding'
+        detector = UniversalDetector()
+        for line in f:
+            detector.feed(line)
+            if detector.done: break
+        detector.close()
+
+        if DEBUG:
+            print 'calendar.txt',detector.result
+
+    with zf.open('calendar.txt','r') as f:
+        csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
         headers = None
         for l in csvf:
             if headers == None:
@@ -495,6 +563,19 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
     print gtfs_package,len(services),'calendars loaded'
 
+
+    with zf.open('calendar_dates.txt','r') as f:
+        if DEBUG:
+            print 'Detecting calendar_dates.txt encoding'
+        detector = UniversalDetector()
+        for line in f:
+            detector.feed(line)
+            if detector.done: break
+        detector.close()
+
+        if DEBUG:
+            print 'calendar_dates.txt',detector.result
+
     service_date_count = 0
     with zf.open('calendar_dates.txt','r') as f:
         csvf = unicodecsv.reader(f, delimiter=',', quotechar='"')
@@ -514,6 +595,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
             services[l['service_id']]['dates'][l['date']] = l['exception_type'] == '1'
             service_date_count += 1
     print gtfs_package,service_date_count,'calendar dates loaded'
+
     zf.close()
 
 
@@ -882,11 +964,13 @@ if __name__ == '__main__':
 
     trainupdater.start()
 
-    hslgtfsprov = railGTFSRTProvider(trainupdater, HSL_ZIP)
-    ngtfsprov = railGTFSRTProvider(trainupdater, VR_ZIP)
+
+
 
     app = Flask(__name__)
     app.debug = DEBUG
+
+    ngtfsprov = railGTFSRTProvider(trainupdater, VR_ZIP)
     @app.route('/national',defaults={'debug':0,'fuzzy':0,'alerts':0})
     @app.route('/national/<int:alerts>/<int:fuzzy>/<int:debug>')
     def national(alerts,fuzzy,debug):
@@ -897,6 +981,8 @@ if __name__ == '__main__':
             return ngtfsprov.buildGTFSRTMessage(alerts=alerts,fuzzy=fuzzy,debug=debug).SerializeToString()
         else:
             return str(ngtfsprov.buildGTFSRTMessage(alerts=alerts,fuzzy=fuzzy,debug=debug))
+
+    hslgtfsprov = railGTFSRTProvider(trainupdater, HSL_ZIP)
 
     @app.route('/hsl',defaults={'debug':0,'fuzzy':0,'alerts':0})
     @app.route('/hsl/<int:alerts>/<int:fuzzy>/<int:debug>')
