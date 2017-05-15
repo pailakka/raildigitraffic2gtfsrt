@@ -3,4 +3,5 @@ protobuf==3.3.0
 python-dateutil==2.6.0
 unicodecsv==0.14.1
 requests==2.14.2
+charder==3.0.2
 
