@@ -1,3 +1,4 @@
+from __future__ import print_function 
 import gtfs_realtime_pb2
 from flask import Flask
 import time
@@ -46,7 +47,7 @@ def downloadGTFS(url, zip_in_zips):
             del r
             zf = zipfile.ZipFile('tmp.zip')
             for name in zip_in_zips:
-                print 'Extracting ' + name
+                print('Extracting ' + name)
                 zf.extract(name)
             del zf
             break
@@ -257,9 +258,9 @@ class railDigitrafficClient(threading.Thread):
                 try:
                     cancelled = self.getCancelledSchedules()
                     last_schedule_update = now
-                    print 'schedules updated',now
+                    print('schedules updated',now)
                 except:
-                    print 'schedule update failed'
+                    print('schedule update failed')
 
             for t in cancelled:
                 self.trains[t['trainNumber']] = t
@@ -269,7 +270,7 @@ class railDigitrafficClient(threading.Thread):
                 traindata = r.json()
                 r.close()
             except:
-                print 'live-trains request failed'
+                print('live-trains request failed')
                 time.sleep(5)
                 continue
 
@@ -318,7 +319,7 @@ class railDigitrafficClient(threading.Thread):
 
             self.data_loaded = True
             time.sleep(10)
-        print 'Done!'
+        print('Done!')
 
 
 class stop2stationResolver(object):
@@ -376,7 +377,7 @@ class stop2stationResolver(object):
                 nearest = (reldist,st)
 
         if nearest[0] > 0.05:
-            print 'FINDING STATION MATCH FAILED',stop
+            print('FINDING STATION MATCH FAILED',stop)
             self.match_failed.add(stop['stop_id'])
             return None
 
@@ -391,7 +392,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
             with open(tmp_filename,'rb') as f:
                 ret = cPickle.load(f)
 
-            print 'GTFS DATA LOADED FROM DISK'
+            print('GTFS DATA LOADED FROM DISK')
             return ret
 
     st = time.time()
@@ -413,7 +414,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
     with zf.open('routes.txt','r') as f:
         if DEBUG:
-            print 'Detecting routes.txt encoding'
+            print('Detecting routes.txt encoding')
         detector = UniversalDetector()
         for line in f:
             detector.feed(line)
@@ -421,7 +422,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         detector.close()
 
         if DEBUG:
-            print 'routes.txt',detector.result
+            print('routes.txt',detector.result)
 
     with zf.open('routes.txt','r') as f:
         csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
@@ -436,11 +437,11 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
                 routes[l['route_id']] = l
                 routes[l['route_id']]['trips'] = []
 
-    print gtfs_package,len(routes),'routes loaded'
+    print(gtfs_package,len(routes),'routes loaded')
 
     with zf.open('trips.txt','r') as f:
         if DEBUG:
-            print 'Detecting trips.txt encoding'
+            print('Detecting trips.txt encoding')
         detector = UniversalDetector()
         for line in f:
             detector.feed(line)
@@ -448,7 +449,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         detector.close()
 
         if DEBUG:
-            print 'trips.txt',detector.result
+            print('trips.txt',detector.result)
 
     with zf.open('trips.txt','r') as f:
         csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
@@ -467,12 +468,12 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
             trips[l['trip_id']]['stoptimes'] = []
             routes[l['route_id']]['trips'].append(l['trip_id'])
 
-    print gtfs_package,len(trips),'trips loaded'
+    print(gtfs_package,len(trips),'trips loaded')
 
 
     with zf.open('stop_times.txt','r') as f:
         if DEBUG:
-            print 'Detecting stop_times.txt encoding'
+            print('Detecting stop_times.txt encoding')
         detector = UniversalDetector()
 
         for line in f:
@@ -481,7 +482,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         detector.close()
 
         if DEBUG:
-            print 'stop_times.txt',detector.result
+            print('stop_times.txt',detector.result)
 
     z = 0
     with zf.open('stop_times.txt','r') as f:
@@ -497,11 +498,11 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
             trips[l['trip_id']]['stoptimes'].append(l)
             wanted_stopids.add(l['stop_id'])
             z+=1
-    print gtfs_package,z,'stoptimes loaded'
+    print(gtfs_package,z,'stoptimes loaded')
 
     with zf.open('stops.txt','r') as f:
         if DEBUG:
-            print 'Detecting stops.txt encoding'
+            print('Detecting stops.txt encoding')
         detector = UniversalDetector()
         for line in f:
             detector.feed(line)
@@ -509,7 +510,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         detector.close()
 
         if DEBUG:
-            print 'stops.txt',detector.result
+            print('stops.txt',detector.result)
 
     with zf.open('stops.txt','r') as f:
         csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
@@ -524,12 +525,12 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
             stops[l['stop_id']] = l
 
-    print gtfs_package,len(stops),'stops loaded'
+    print(gtfs_package,len(stops),'stops loaded')
 
 
     with zf.open('calendar.txt','r') as f:
         if DEBUG:
-            print 'Detecting calendar.txt encoding'
+            print('Detecting calendar.txt encoding')
         detector = UniversalDetector()
         for line in f:
             detector.feed(line)
@@ -537,7 +538,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         detector.close()
 
         if DEBUG:
-            print 'calendar.txt',detector.result
+            print('calendar.txt',detector.result)
 
     with zf.open('calendar.txt','r') as f:
         csvf = unicodecsv.reader(f, delimiter=',', quotechar='"', encoding=detector.result['encoding'])
@@ -561,12 +562,12 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
             services[l['service_id']]['dates'] = {}
 
 
-    print gtfs_package,len(services),'calendars loaded'
+    print(gtfs_package,len(services),'calendars loaded')
 
 
     with zf.open('calendar_dates.txt','r') as f:
         if DEBUG:
-            print 'Detecting calendar_dates.txt encoding'
+            print('Detecting calendar_dates.txt encoding')
         detector = UniversalDetector()
         for line in f:
             detector.feed(line)
@@ -574,7 +575,7 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
         detector.close()
 
         if DEBUG:
-            print 'calendar_dates.txt',detector.result
+            print('calendar_dates.txt',detector.result)
 
     service_date_count = 0
     with zf.open('calendar_dates.txt','r') as f:
@@ -594,17 +595,17 @@ def loadGTFSRailTripData(gtfs_package = 'vr.zip'):
 
             services[l['service_id']]['dates'][l['date']] = l['exception_type'] == '1'
             service_date_count += 1
-    print gtfs_package,service_date_count,'calendar dates loaded'
+    print(gtfs_package,service_date_count,'calendar dates loaded')
 
     zf.close()
 
 
-    print gtfs_package,'reading done. Took:',time.time()-st
+    print(gtfs_package,'reading done. Took:',time.time()-st)
 
     if DEBUG:
         with open(tmp_filename,'wb') as f:
             cPickle.dump((routes,trips,stops,services),f,-1)
-            print 'GTFS DATA WRITTEN TO DISK'
+            print('GTFS DATA WRITTEN TO DISK')
 
 
     return routes,trips,stops,services
@@ -648,7 +649,7 @@ def servicesToDatedict(services):
                 else:
                     if not date in dates:
                         continue
-                    print sk,'removed from',date
+                    print(sk,'removed from',date)
                     dates[date].discard(sk)
     return dates
 
@@ -706,7 +707,7 @@ class railGTFSRTProvider(object):
                 return self.commuter[train['commuterLineID']]
 
         if False and DEBUG:
-            print 'GTFS routes/trips not found for train',train['trainNumber'],'(',train['commuterLineID'],')'
+            print('GTFS routes/trips not found for train',train['trainNumber'],'(',train['commuterLineID'],')')
         return None
 
 
@@ -793,7 +794,7 @@ class railGTFSRTProvider(object):
 
                     if skipped:
                         if DEBUG:
-                            print routeid,tripid,train['trainNumber'],train['commuterLineID'] if 'commuterLineID' in train else '','invalid match'
+                            print(routeid,tripid,train['trainNumber'],train['commuterLineID'] if 'commuterLineID' in train else '','invalid match')
                             pprint.pprint(station_times)
                             pprint.pprint(stops)
                             pprint.pprint(dbg)
@@ -955,7 +956,7 @@ class railGTFSRTProvider(object):
 if __name__ == '__main__':
     VR_ZIP = 'router-finland/matka.zip'
     HSL_ZIP = 'router-finland/hsl.zip'
-    router_zip_url = os.getenv('ROUTER_ZIP_URL', 'http://api.digitransit.fi/routing-data/v1/router-finland.zip')
+    router_zip_url = os.getenv('ROUTER_ZIP_URL', 'https://api.digitransit.fi/routing-data/v2/finland/router-finland.zip')
 
     downloadGTFS(router_zip_url, [VR_ZIP, HSL_ZIP])
 
