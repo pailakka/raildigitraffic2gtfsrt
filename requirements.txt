@@ -4,4 +4,5 @@ python-dateutil==2.6.0
 unicodecsv==0.14.1
 requests==2.14.2
 chardet==3.0.3
+future==0.16.0
 
